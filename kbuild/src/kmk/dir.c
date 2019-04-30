@@ -1426,6 +1426,22 @@ local_stat (const char *path, struct stat *buf)
 }
 #endif
 
+#ifndef lstat
+# ifndef VMS
+int lstat (const char *path, struct stat *sbuf);
+# endif
+# define local_lstat lstat
+#else
+static int
+local_lstat (const char *path, struct stat *buf)
+{
+  int e;
+
+  EINTRLOOP (e, lstat (path, buf));
+  return e;
+}
+#endif
+
 #ifdef KMK
 static int dir_exists_p (const char *dirname)
 {
@@ -1446,9 +1462,7 @@ dir_setup_glob (glob_t *gl)
   gl->gl_readdir = read_dirstream;
   gl->gl_closedir = ansi_free;
   gl->gl_stat = local_stat;
-#ifdef __EMX__ /* The FreeBSD implementation actually uses gl_lstat!! */
-  gl->gl_lstat = local_stat;
-#endif
+  gl->gl_lstat = local_lstat;
 #if defined(KMK) && !defined(__OS2__)
   gl->gl_exists = file_exists_p;
   gl->gl_isdir = dir_exists_p;
